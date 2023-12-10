@@ -36,3 +36,18 @@ app.post('/comments', function(req, res) {
     var comments = JSON.parse(data);
     var newComment = {
       id: Date.now(),
+      // assuming you have author and text in the request body
+      author: req.body.author,
+      text: req.body.text
+    };
+
+    comments.push(newComment);
+    fs.writeFile(COMMENTS_FILE, JSON.stringify(comments, null, 4), function(err) {
+      if (err) {
+        console.log(err);
+        process.exit(1);
+      }
+      res.json(comments);
+    });
+  });
+});
