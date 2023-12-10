@@ -1,71 +1,46 @@
-//create webserver 
+// Create web server
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
+const { randomBytes } = require('crypto');
+const cors = require('cors');
 
-//create database connection
-const mysql = require('mysql');
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'comments'
-});
-//connect to database
-db.connect((err) => {
-    if(err){
-        throw err;
-    }
-    console.log('MySql Connected...');
-});
+// Create an express application
+const app = express();
 
-//use body-parser
+// Apply middleware
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
-//get all comments
-app.get('/comments', (req, res) => {
-    let sql = 'SELECT * FROM comments';
-    let query = db.query(sql, (err, results) => {
-        if(err) throw err;
-        res.send(results);
-    });
+// Store comments
+const commentsByPostId = {};
+
+// Get all comments for a post
+app.get('/posts/:id/comments', (req, res) => {
+  res.send(commentsByPostId[req.params.id] || []);
 });
 
-//get a comment
-app.get('/comments/:id', (req, res) => {
-    let sql = `SELECT * FROM comments WHERE id = ${req.params.id}`;
-    let query = db.query(sql, (err, result) => {
-        if(err) throw err;
-        res.send(result);
-    });
+// Add a comment to a post
+app.post('/posts/:id/comments', (req, res) => {
+  // Create a random ID for the comment
+  const commentId = randomBytes(4).toString('hex');
+
+  // Get the comment content from the request body
+  const { content } = req.body;
+
+  // Get the comments for the post
+  const comments = commentsByPostId[req.params.id] || [];
+
+  // Add the comment to the comments array
+  comments.push({ id: commentId, content });
+
+  // Store the comments
+  commentsByPostId[req.params.id] = comments;
+
+  // Send back the comments
+  res.status(201).send(comments);
 });
 
-//add a comment
-app.post('/comments', (req, res) => {
-    let data = {name: req.body.name, comment: req.body.comment};
-    let sql = 'INSERT INTO comments SET ?';
-    let query = db.query(sql, data,(err, result) => {
-        if(err) throw err;
-        res.send(result);
-    });
-});
-
-//update a comment
-app.put('/comments/:id', (req, res) => {
-    let sql = `UPDATE comments SET name = '${req.body.name}', comment = '${req.body.comment}' WHERE id = ${req.params.id}`;
-    let query = db.query(sql, (err, result) => {
-        if(err) throw err;
-        res.send(result);
-    });
-});
-
-//delete a comment
-app.delete('/comments/:id', (req, res) => {
-    let sql = `DELETE FROM comments WHERE id = ${req.params.id}`;
-    let query = db.query(sql, (err, result) => {
-        if(err) throw err;
-        res.send(result);
-    });
+// Listen on port 4001
+app.listen(4001, () => {
+  console.log('Listening on 4001');
 });
